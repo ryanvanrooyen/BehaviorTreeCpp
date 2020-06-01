@@ -1,3 +1,10 @@
+
+# Editor files
+.vscode
+
+# Output directory
+bin
+
 # Prerequisites
 *.d
 
