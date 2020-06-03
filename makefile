@@ -1,7 +1,7 @@
 
 CC = g++ --std=c++11
-HEADERS = source/nodes.h source/composites.h source/visitors.h
-OBJS = source/nodes.o source/composites.o source/visitors.o
+HEADERS = source/bt.h source/nodes.h source/composites.h source/decorators.h source/visitors.h
+OBJS = source/bt.o source/nodes.o source/composites.o source/decorators.o source/visitors.o
 OUTDIR = bin
 
 # Examples:
@@ -10,7 +10,7 @@ example1: examples/example1.o $(OBJS)
 
 # Source files:
 %.o: %.cpp $(HEADERS)
-	$(CC) -o $@ -c $<
+	$(CC) -c $< -o $@
 
 # Helpers:
 clean:

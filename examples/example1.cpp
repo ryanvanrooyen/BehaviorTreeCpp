@@ -1,26 +1,46 @@
 
 #include <initializer_list>
-#include <vector>
-#include <sstream>
 #include <iostream>
 #include <unistd.h>
-#include "../bt.h"
+#include "../source/bt.h"
 
 using namespace bt;
-using std::cout;
+
+Status attackPlayer() { return Status::Failure; }
+Status mockSuccessAction() { return Status::Success; }
+Status mockRunningAction() { return Status::Running; }
+bool canSeePlayer() { return true; }
+
 
 int main()
 {
-    Node* root = new Sequence({
-        new MockNode("Act1", {Status::Running, Status::Success, Status::Failure}),
-        new MockNode("Act2", {Status::Running, Status::Success})});
+    BehaviorTreeBuilder builder;
 
-    NodeSerializer serializer(cout);
+    BehaviorTree* patrol = builder
+        .sequence(3)
+            .action("GotToPointA", mockSuccessAction)
+            .action("GotToPointB", mockRunningAction)
+            .action("GotToPointC", mockSuccessAction)
+        .end();
+
+    BehaviorTree* attack = builder
+        .sequence(3)
+            .negate().check("CanSeePlayer", canSeePlayer)
+            .action("GoToPlayer", mockRunningAction)
+            .action("AttackPlayer", mockSuccessAction)
+        .end();
+
+    BehaviorTree* mainTree = builder
+        .selector(2)
+            .action("Attack", *attack)
+            .action("Patrol", *patrol)
+        .end();
+
     int numbOfTicks = 2;
     for (int i = 0; i < numbOfTicks; ++i)
     {
-        Status status = root->tick();
-        root->traverse(serializer);
+        mainTree->tick();
+        std::cout << *mainTree;
         sleep(1);
     }
 }

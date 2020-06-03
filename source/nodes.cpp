@@ -10,31 +10,27 @@ std::ostream& operator<<(std::ostream& os, const Status& s)
     if (s == Status::Success) os << "Success";
     if (s == Status::Running) os << "Running";
     if (s == Status::Failure) os << "Failure";
-    if (s == Status::Invalid) os << "Invalid";
+    if (s == Status::Initial) os << "Initial";
     return os;
 }
 
 
-void Node::traverse(NodeVisitor& visitor)
+void Node::traverse(BehaviorTreeVisitor& visitor) const
 {
     visitor.visit(*this);
 }
 
 
-MockNode::MockNode(const char* name, std::initializer_list<Status> status) : Node(name), mockStatus{status}
+void SubTree::traverse(BehaviorTreeVisitor& visitor) const
 {
-    currentStatus = mockStatus.begin();
+    visitor.visit(*this);
 }
 
 
-Status MockNode::update()
+void SubTree::traverseSubTree(BehaviorTreeVisitor& visitor) const
 {
-    Status status = *currentStatus;
-    if (currentStatus == mockStatus.end())
-        currentStatus = mockStatus.begin();
-    else
-        ++currentStatus;
-    return status;
+    if (root)
+        root->traverse(visitor);
 }
 
 }

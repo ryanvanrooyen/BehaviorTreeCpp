@@ -1,10 +1,7 @@
 
 #pragma once
 
-#include <iostream>
-#include <iomanip>
 #include <vector>
-#include <initializer_list>
 #include "nodes.h"
 
 namespace bt
@@ -13,9 +10,6 @@ namespace bt
 class Composite : public Node
 {
 public:
-    Composite(const char* name) : Node(name) {}
-    Composite(const char* name, std::initializer_list<Node*> children) : Node(name), children(children) {}
-
     virtual void initialize() override
     {
         currentChild = children.begin();
@@ -25,16 +19,12 @@ public:
     {
         if (child) children.push_back(child);
     }
-    void removeChild(Node* child)
-    {
-        if (child) children.push_back(child);
-    }
-    void clearChildren();
 
-    virtual void traverse(class NodeVisitor& visitor) override;
-
+    virtual void traverse(class BehaviorTreeVisitor& visitor) const override;
+    void traverseChildren(class BehaviorTreeVisitor& visitor) const;
+    virtual ~Composite() override;
 protected:
-    std::vector<Node*> children;
+    std::vector<Node*> children = std::vector<Node*>();
     std::vector<Node*>::iterator currentChild;
 };
 
@@ -42,8 +32,7 @@ protected:
 class Sequence : public Composite
 {
 public:
-    Sequence() : Composite("Sequence") {}
-    Sequence(std::initializer_list<Node*> children) : Composite("Sequence", children) {}
+    virtual const char* name() const override { return "Sequence"; }
 protected:
     virtual Status update() override;
 };
@@ -52,8 +41,7 @@ protected:
 class Selector : public Composite
 {
 public:
-    Selector() : Composite("Selector") {}
-    Selector(std::initializer_list<Node*> children) : Composite("Selector", children) {}
+    virtual const char* name() const override { return "Selector"; }
 protected:
     virtual Status update() override;
 };

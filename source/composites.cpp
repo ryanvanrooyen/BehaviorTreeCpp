@@ -5,11 +5,26 @@
 namespace bt
 {
 
-void Composite::traverse(class NodeVisitor& visitor)
+void Composite::traverse(BehaviorTreeVisitor& visitor) const
 {
     visitor.visit(*this);
+    traverseChildren(visitor);
+}
+
+
+void Composite::traverseChildren(BehaviorTreeVisitor& visitor) const
+{
+    visitor.beforeChildNodes(*this);
+    for (Node* child : children) child->traverse(visitor);
+    visitor.afterChildNodes(*this);
+}
+
+
+Composite::~Composite()
+{
     for (Node* child : children)
-        child->traverse(visitor);
+        delete child;
+    children.clear();
 }
 
 

@@ -1,29 +1,51 @@
 
+#include "nodes.h"
+#include "composites.h"
 #include "visitors.h"
 
 namespace bt
 {
 
-void NodeSerializer::print(const Node& node)
+void Serializer::print(const Node& node)
 {
-    // out << "Printing from serializer" << std::endl;
     for (int i = 0; i < depth; i++)
         out << "\t";
 
-    out << node.getName() << ": " << node.getStatus() << std::endl;
+    if (status && node.status() != Status::Initial)
+        out << node.name() << ": " << node.status() << std::endl;
+    else
+        out << node.name() << std::endl;
 }
 
 
-void NodeSerializer::visit(const Node& node)
+void Serializer::visit(const Decorator& node)
 {
-    print(node);
+    for (int i = 0; i < depth; i++)
+        out << "\t";
+
+    if (Node* child = node.child())
+    {
+        if (status && node.status() != Status::Initial)
+            out << node.name() << " " << child->name() << ": " << node.status() << std::endl;
+        else
+            out << node.name() << " " << child->name() << ": " << node.status() << std::endl;
+    }
+    else
+    {
+        if (status && node.status() != Status::Initial)
+            out << node.name() << ": " << node.status() << std::endl;
+        else
+            out << node.name() << std::endl;
+    }
 }
 
 
-void NodeSerializer::visit(const Composite& node)
+void Serializer::visit(const SubTree& tree)
 {
-    print(node);
-    ++depth;
+    if (expand)
+        tree.traverseSubTree(*this);
+    else
+        visit((Node&) tree);
 }
 
 }
