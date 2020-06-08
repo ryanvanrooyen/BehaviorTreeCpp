@@ -1,9 +1,7 @@
 
 #pragma once
 
-#include <vector>
-#include <initializer_list>
-#include <iostream>
+#include <memory>
 #include <functional>
 
 namespace bt
@@ -29,6 +27,7 @@ public:
 
     Status tick()
     {
+        // std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
         if (nodeStatus != Status::Running) initialize();
         nodeStatus = update();
         if (nodeStatus != Status::Running) terminate(nodeStatus);
@@ -38,7 +37,7 @@ public:
     Status status() const { return nodeStatus; }
     virtual const char* name() const { return "Node"; }
 
-    virtual void traverse(class BehaviorTreeVisitor& visitor) const;
+    virtual void traverse(class Visitor& visitor) const;
 
     virtual ~Node() {}
 
@@ -47,46 +46,49 @@ private:
 };
 
 
-class SubTree : public Node
-{
-public:
-    SubTree(const char* name, Node* root) : treeName(name), root(root) {}
-    virtual const char* name() const override { return treeName; }
-
-    virtual void traverse(BehaviorTreeVisitor& visitor) const override;
-    void traverseSubTree(BehaviorTreeVisitor& visitor) const;
-
-protected:
-    virtual Status update() override { return root->tick(); }
-
-private:
-    const char* treeName;
-    Node* root;
-};
-
-
 class Action: public Node
 {
 public:
-    Action(const char* name, std::function<Status()> action) : nodeName(name), action(action) {}
-    virtual Status update() override { return action(); }
+    Action(const char* name) : nodeName(name) {}
     virtual const char* name() const override { return nodeName; }
 private:
     const char* nodeName;
-    std::function<Status()> action;
 };
 
 
-class Check: public Node
+class SubTree : public Action
 {
 public:
-    Check(const char* name, std::function<bool()> check) : nodeName(name), check(check) {}
-    virtual Status update() override { return check() ? Status::Success : Status::Failure; }
-    virtual const char* name() const override { return nodeName; }
+    SubTree(const char* name, const std::shared_ptr<class BehaviorTree>& tree)
+        : Action(name), tree(tree) {}
+
+    virtual void traverse(Visitor& visitor) const override;
+    void traverseSubTree(Visitor& visitor) const;
+protected:
+    virtual Status update() override;
+
 private:
-    const char* nodeName;
+    std::shared_ptr<class BehaviorTree> tree;
+};
+
+
+class Condition: public Action
+{
+public:
+    Condition(const char* name, std::function<bool()> check) : Action(name), check(check) {}
+    virtual Status update() override { return check() ? Status::Success : Status::Failure; }
+private:
     std::function<bool()> check;
 };
 
+
+class ActionFunction: public Action
+{
+public:
+    ActionFunction(const char* name, std::function<Status()> action) : Action(name), action(action) {}
+    virtual Status update() override { return action(); }
+private:
+    std::function<Status()> action;
+};
 
 }

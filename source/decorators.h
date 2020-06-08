@@ -10,7 +10,7 @@ class Decorator : public Node
 {
 public:
     void setChild(Node* child) { childNode = child; }
-    virtual void traverse(class BehaviorTreeVisitor& visitor) const override;
+    virtual void traverse(class Visitor& visitor) const override;
 
     Node* child() const { return childNode; }
     virtual ~Decorator() override;

@@ -1,6 +1,7 @@
 
 # Editor files
 .vscode
+*.xcodeproj
 
 # Output directory
 bin

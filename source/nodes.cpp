@@ -1,6 +1,7 @@
 
 #include "nodes.h"
 #include "visitors.h"
+#include "bt.h"
 
 namespace bt
 {
@@ -15,22 +16,27 @@ std::ostream& operator<<(std::ostream& os, const Status& s)
 }
 
 
-void Node::traverse(BehaviorTreeVisitor& visitor) const
+void Node::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
 }
 
 
-void SubTree::traverse(BehaviorTreeVisitor& visitor) const
+Status SubTree::update()
+{
+    return tree->tick();
+}
+
+
+void SubTree::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
 }
 
 
-void SubTree::traverseSubTree(BehaviorTreeVisitor& visitor) const
+void SubTree::traverseSubTree(Visitor& visitor) const
 {
-    if (root)
-        root->traverse(visitor);
+    tree->traverse(visitor);
 }
 
 }

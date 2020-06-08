@@ -6,41 +6,29 @@
 namespace bt
 {
 
-void Serializer::print(const Node& node)
+void TextSerializer::print(const char* name, Status status, const char* prefix)
 {
     for (int i = 0; i < depth; i++)
         out << "\t";
-
-    if (status && node.status() != Status::Initial)
-        out << node.name() << ": " << node.status() << std::endl;
-    else
-        out << node.name() << std::endl;
+    if (prefix)
+        out << prefix << " ";
+    out << name;
+    if (status != Status::Initial)
+        out << ": " << status;
+    out << std::endl;
 }
 
 
-void Serializer::visit(const Decorator& node)
+void TextSerializer::visit(const Decorator& node)
 {
-    for (int i = 0; i < depth; i++)
-        out << "\t";
-
     if (Node* child = node.child())
-    {
-        if (status && node.status() != Status::Initial)
-            out << node.name() << " " << child->name() << ": " << node.status() << std::endl;
-        else
-            out << node.name() << " " << child->name() << ": " << node.status() << std::endl;
-    }
+        print(child->name(), node.status(), node.name());
     else
-    {
-        if (status && node.status() != Status::Initial)
-            out << node.name() << ": " << node.status() << std::endl;
-        else
-            out << node.name() << std::endl;
-    }
+        print(node.name(), node.status());
 }
 
 
-void Serializer::visit(const SubTree& tree)
+void TextSerializer::visit(const SubTree& tree)
 {
     if (expand)
         tree.traverseSubTree(*this);

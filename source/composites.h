@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <vector>
 #include "nodes.h"
+#include <cstdint>
 
 namespace bt
 {
@@ -10,28 +10,25 @@ namespace bt
 class Composite : public Node
 {
 public:
-    virtual void initialize() override
-    {
-        currentChild = children.begin();
-    }
+    Composite(Node** children, uint16_t childCount)
+        : children(children), childCount(childCount) {}
 
-    void addChild(Node* child)
-    {
-        if (child) children.push_back(child);
-    }
-
-    virtual void traverse(class BehaviorTreeVisitor& visitor) const override;
-    void traverseChildren(class BehaviorTreeVisitor& visitor) const;
+    virtual void initialize() override { currentIndex = 0; }
+    void addChild(Node* child);
+    virtual void traverse(class Visitor& visitor) const override;
+    void traverseChildren(class Visitor& visitor) const;
     virtual ~Composite() override;
 protected:
-    std::vector<Node*> children = std::vector<Node*>();
-    std::vector<Node*>::iterator currentChild;
+    const uint16_t childCount;
+    uint16_t currentIndex = 0;
+    Node** children;
 };
 
 
 class Sequence : public Composite
 {
 public:
+    using Composite::Composite;
     virtual const char* name() const override { return "Sequence"; }
 protected:
     virtual Status update() override;
@@ -41,6 +38,7 @@ protected:
 class Selector : public Composite
 {
 public:
+    using Composite::Composite;
     virtual const char* name() const override { return "Selector"; }
 protected:
     virtual Status update() override;

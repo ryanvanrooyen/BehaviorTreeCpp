@@ -4,9 +4,18 @@
 namespace bt
 {
 
+void BehaviorTree::traverse(Visitor& visitor) const
+{
+    visitor.begin();
+    if (root)
+        root->traverse(visitor);
+    visitor.end();
+}
+
+
 BehaviorTree::~BehaviorTree()
 {
-    delete root;
+    root->~Node();
     root = nullptr;
 }
 
@@ -16,62 +25,43 @@ void BehaviorTreeBuilder::addNode(Node* node)
     if (!root)
         root = node;
 
-    auto current = groups.size() ? groups.back() : nullptr;
-    if (current && current->childrenLeftToAdd <= 0)
-    {
-        delete current;
-        if (groups.size() > 0)
-        {
-            groups.pop_back();
-            current = groups.back();
-        }
-        else
-        {
-            current = nullptr;
-        }
-    }
+    if (groups.size() && groups.back().childrenLeftToAdd <= 0)
+        groups.pop_back();
+    if (!groups.size())
+        return;
 
-    if (current && current->parent && current->childrenLeftToAdd > 0)
+    Group& group = groups.back();
+    if (group.parent && group.childrenLeftToAdd > 0)
     {
-        if (Composite* parent = dynamic_cast<Composite*>(current->parent))
+        if (Composite* parent = dynamic_cast<Composite*>(group.parent))
         {
             parent->addChild(node);
-            current->childrenLeftToAdd -= 1;
+            group.childrenLeftToAdd -= 1;
         }
-        else if (Decorator* parent = dynamic_cast<Decorator*>(current->parent))
+        else if (Decorator* parent = dynamic_cast<Decorator*>(group.parent))
         {
             parent->setChild(node);
-            current->childrenLeftToAdd -= 1;
+            group.childrenLeftToAdd -= 1;
         }
     }
 }
 
 
-BehaviorTree* BehaviorTreeBuilder::end()
+std::shared_ptr<BehaviorTree> BehaviorTreeBuilder::end()
 {
     if (!root)
         return nullptr;
-    BehaviorTree* tree = new BehaviorTree(root);
-    createdTrees.push_back(tree);
+    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(root, memory);
+    std::shared_ptr<BehaviorTree> tree(treePtr, [](BehaviorTree* t) { t->~BehaviorTree(); });
     root = nullptr;
-    for (Group* group : groups)
-        delete group;
     groups.clear();
     return tree;
 }
 
 
-BehaviorTreeBuilder::~BehaviorTreeBuilder()
-{
-    for (BehaviorTree* tree : createdTrees)
-        delete tree;
-    createdTrees.clear();
-}
-
-
 std::ostream& operator<<(std::ostream& os, const BehaviorTree& tree)
 {
-    Serializer serializer(os);
+    TextSerializer serializer(os, true);
     tree.traverse(serializer);
     return os;
 }

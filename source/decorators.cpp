@@ -5,7 +5,7 @@
 namespace bt
 {
 
-void Decorator::traverse(BehaviorTreeVisitor& visitor) const
+void Decorator::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
     if (Composite* composite = dynamic_cast<Composite*>(childNode))
@@ -15,7 +15,7 @@ void Decorator::traverse(BehaviorTreeVisitor& visitor) const
 
 Decorator::~Decorator()
 {
-    delete childNode;
+    childNode->~Node();
     childNode = nullptr;
 }
 

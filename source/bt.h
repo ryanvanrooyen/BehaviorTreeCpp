@@ -1,11 +1,13 @@
 
 #pragma once
 
+#include <vector>
+#include <memory>
 #include "nodes.h"
 #include "composites.h"
 #include "decorators.h"
 #include "visitors.h"
-
+#include "memory.h"
 
 namespace bt
 {
@@ -13,18 +15,14 @@ namespace bt
 class BehaviorTree
 {
 public:
-    void tick() { if (root) root->tick(); }
-    void traverse(BehaviorTreeVisitor& visitor) const
-    {
-        visitor.begin();
-        if (root) root->traverse(visitor);
-        visitor.end();
-    }
+    Status tick() { return root ? root->tick() : Status::Failure; }
+    void traverse(Visitor& visitor) const;
     ~BehaviorTree();
-    friend class BehaviorTreeBuilder;
+    friend class Memory;
 private:
-    BehaviorTree(Node* root) : root(root) {}
+    BehaviorTree(Node* root, const std::shared_ptr<Memory>& memory) : root(root), memory(memory) {}
     Node* root;
+    std::shared_ptr<Memory> memory;
 };
 
 std::ostream& operator<<(std::ostream& os, const BehaviorTree& tree);
@@ -33,14 +31,18 @@ std::ostream& operator<<(std::ostream& os, const BehaviorTree& tree);
 class BehaviorTreeBuilder
 {
 public:
+    BehaviorTreeBuilder() : BehaviorTreeBuilder(1024) { }
+    BehaviorTreeBuilder(const size_t maxBytes) : memory(std::make_shared<Memory>(maxBytes)) { }
+    BehaviorTreeBuilder(const std::shared_ptr<Memory>& existingMemory) : memory(existingMemory) { }
+
     // Nodes:
-    BehaviorTreeBuilder& action(const char* name, std::function<Status()> action) { return create<Action>(name, action); }
-    BehaviorTreeBuilder& check(const char* name, std::function<bool()> check) { return create<Check>(name, check); }
-    BehaviorTreeBuilder& action(const char* name, BehaviorTree& tree) { return create<SubTree>(name, tree.root); }
+    BehaviorTreeBuilder& action(const char* name, std::function<Status()> action) { return create<ActionFunction>(name, action); }
+    BehaviorTreeBuilder& check(const char* name, std::function<bool()> check) { return create<Condition>(name, check); }
+    BehaviorTreeBuilder& action(const char* name, const std::shared_ptr<BehaviorTree>& tree) { return create<SubTree>(name, tree); }
 
     // Composites:
-    BehaviorTreeBuilder& selector(int childCount) { return group<Selector>(childCount); }
-    BehaviorTreeBuilder& sequence(int childCount) { return group<Sequence>(childCount); }
+    BehaviorTreeBuilder& selector(uint16_t childCount) { return composite<Selector>(childCount); }
+    BehaviorTreeBuilder& sequence(uint16_t childCount) { return composite<Sequence>(childCount); }
 
     // Decorators:
     BehaviorTreeBuilder& negate() { return group<Negate>(1); }
@@ -48,17 +50,23 @@ public:
     template<typename T, typename... Args>
     BehaviorTreeBuilder& create(Args... args) { return group<T>(0, args...); }
 
-    BehaviorTree* end();
-    ~BehaviorTreeBuilder();
+    std::shared_ptr<BehaviorTree> end();
 
 protected:
-    template<typename T, typename... Args>
-    BehaviorTreeBuilder& group(int childCount, Args... args)
+    template<typename T>
+    BehaviorTreeBuilder& composite(uint16_t childCount)
     {
-        T* node = new T(args...);
+        Node** children = memory->allocateArray<Node*>(childCount);
+        return group<T>(childCount, children, childCount);
+    }
+
+    template<typename T, typename... Args>
+    BehaviorTreeBuilder& group(uint16_t childCount, Args... args)
+    {
+        T* node = memory->allocate<T>(args...);
         addNode(node);
         if (childCount > 0)
-            groups.push_back(new Group(node, childCount));
+            groups.push_back(Group(node, childCount));
         return *this;
     }
 
@@ -67,15 +75,14 @@ private:
     {
         Node* parent;
         int childrenLeftToAdd;
-        Group(Node* parent, int children)
-            : parent(parent), childrenLeftToAdd(children) {}
+        Group(Node* parent, int children) : parent(parent), childrenLeftToAdd(children) {}
     };
 
     void addNode(Node* node);
 
     Node* root = nullptr;
-    std::vector<Group*> groups = std::vector<Group*>();
-    std::vector<BehaviorTree*> createdTrees = std::vector<BehaviorTree*>();
+    std::shared_ptr<Memory> memory;
+    std::vector<Group> groups = std::vector<Group>();
 };
 
 }
