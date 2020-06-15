@@ -1,5 +1,6 @@
 
 #include "bt.h"
+#include <stdexcept>
 
 namespace bt
 {
@@ -23,12 +24,12 @@ BehaviorTree::~BehaviorTree()
 void BehaviorTreeBuilder::addNode(Node* node)
 {
     if (!root)
+    {
         root = node;
-
-    if (groups.size() && groups.back().childrenLeftToAdd <= 0)
-        groups.pop_back();
-    if (!groups.size())
         return;
+    }
+    if (!groups.size())
+        throw std::runtime_error("Invalid BehaviorTree definition. Number of child nodes does not match group node child counts.");
 
     Group& group = groups.back();
     if (group.parent && group.childrenLeftToAdd > 0)
@@ -43,6 +44,9 @@ void BehaviorTreeBuilder::addNode(Node* node)
             parent->setChild(node);
             group.childrenLeftToAdd -= 1;
         }
+
+        if (group.childrenLeftToAdd <= 0)
+            groups.pop_back();
     }
 }
 
@@ -51,10 +55,11 @@ std::shared_ptr<BehaviorTree> BehaviorTreeBuilder::end()
 {
     if (!root)
         return nullptr;
-    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(root, memory);
+    if (groups.size())
+        throw std::runtime_error("Invalid BehaviorTree definition. Number of child nodes does not match group node child counts.");
+    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(root, memory, scheduler);
     std::shared_ptr<BehaviorTree> tree(treePtr, [](BehaviorTree* t) { t->~BehaviorTree(); });
     root = nullptr;
-    groups.clear();
     return tree;
 }
 

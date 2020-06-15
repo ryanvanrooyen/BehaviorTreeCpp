@@ -1,6 +1,5 @@
 
-#include "decorators.h"
-#include "visitors.h"
+#include "bt.h"
 
 namespace bt
 {
@@ -12,6 +11,10 @@ void Decorator::traverse(Visitor& visitor) const
         composite->traverseChildren(visitor);
 }
 
+void Decorator::initialize(Scheduler& scheduler)
+{
+    scheduler.start(*childNode, this);
+}
 
 Decorator::~Decorator()
 {
@@ -19,16 +22,13 @@ Decorator::~Decorator()
     childNode = nullptr;
 }
 
-
-Status Negate::update()
+void Negate::onComplete(Scheduler& scheduler, const Node& child, Status status)
 {
-    if (!childNode)
-        return Status::Failure;
-
-    Status status = childNode->tick();
-    if (status == Status::Success) return Status::Failure;
-    if (status == Status::Failure) return Status::Success;
-    return status;
+    if (status == Status::Success)
+        status = Status::Failure;
+    else if (status == Status::Failure)
+        status = Status::Success;
+    scheduler.stop(*this, status);
 }
 
 }

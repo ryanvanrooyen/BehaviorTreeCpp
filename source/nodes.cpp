@@ -1,6 +1,4 @@
 
-#include "nodes.h"
-#include "visitors.h"
 #include "bt.h"
 
 namespace bt
@@ -15,28 +13,31 @@ std::ostream& operator<<(std::ostream& os, const Status& s)
     return os;
 }
 
-
 void Node::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
 }
 
-
-Status SubTree::update()
+void SubTree::initialize(Scheduler& scheduler)
 {
-    return tree->tick();
+    if (tree && tree->root)
+        scheduler.start(*tree->root, this);
 }
 
+void SubTree::onComplete(Scheduler& scheduler, const Node& node, Status status)
+{
+    scheduler.stop(*this, status);
+}
 
 void SubTree::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
 }
 
-
 void SubTree::traverseSubTree(Visitor& visitor) const
 {
-    tree->traverse(visitor);
+    if (tree && tree->root)
+        tree->root->traverse(visitor);
 }
 
 }

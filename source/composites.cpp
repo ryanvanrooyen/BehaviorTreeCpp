@@ -1,9 +1,14 @@
 
-#include "composites.h"
-#include "visitors.h"
+#include "bt.h"
 
 namespace bt
 {
+
+void Composite::initialize(Scheduler& scheduler)
+{
+    currentIndex = 0;
+    scheduler.start(*children[0], this);
+}
 
 void Composite::addChild(Node* child)
 {
@@ -14,13 +19,11 @@ void Composite::addChild(Node* child)
     }
 }
 
-
 void Composite::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
     traverseChildren(visitor);
 }
-
 
 void Composite::traverseChildren(Visitor& visitor) const
 {
@@ -29,7 +32,6 @@ void Composite::traverseChildren(Visitor& visitor) const
         children[i]->traverse(visitor);
     visitor.afterChildNodes(*this);
 }
-
 
 Composite::~Composite()
 {
@@ -41,36 +43,32 @@ Composite::~Composite()
     }
 }
 
-
-Status Sequence::update()
+void Sequence::onComplete(Scheduler& scheduler, const Node& child, Status status)
 {
-    // Keep going until a child behavior says it’s running or failed:
-    while (true)
+    if (status == Status::Failure)
     {
-        Status s = children[currentIndex]->tick();
-        // If child fails or keeps running, do the same:
-        if (s != bt::Status::Success)
-            return s;
-        // Move on until we hit the end of the array:
-        if (++currentIndex == childCount)
-            return bt::Status::Success;
+        scheduler.stop(*this, status);
+        return;
     }
+
+    if (++currentIndex == childCount)
+        scheduler.stop(*this, Status::Success);
+    else
+        scheduler.start(*children[currentIndex], this);
 }
 
-
-Status Selector::update()
+void Selector::onComplete(Scheduler& scheduler, const Node& child, Status status)
 {
-    // Keep going until a child behavior says it’s running.
-    while (true)
+    if (status == Status::Success)
     {
-        Status s = children[currentIndex]->tick();
-        //If child succeeds or keeps running, do the same.
-        if (s != Status::Failure)
-            return s;
-        //Continue search for fallback until the last child.
-        if (++currentIndex == childCount)
-            return Status::Failure;
+        scheduler.stop(*this, status);
+        return;
     }
+
+    if (++currentIndex == childCount)
+        scheduler.stop(*this, Status::Failure);
+    else
+        scheduler.start(*children[currentIndex], this);
 }
 
 }

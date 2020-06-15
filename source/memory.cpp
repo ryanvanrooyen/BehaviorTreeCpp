@@ -19,7 +19,6 @@ Memory::Memory(Memory&& m) noexcept
     : buffer(m.buffer), offset(m.offset), maxBytes(m.maxBytes)
 {
     m.buffer = nullptr;
-    m.offset = 0;
 }
 
 Memory::~Memory()

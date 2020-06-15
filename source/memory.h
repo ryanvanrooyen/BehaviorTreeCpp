@@ -1,7 +1,9 @@
 
 #pragma once
 
+#include <utility>
 #include <cstdint>
+#include <stdexcept>
 #include <new>
 
 namespace bt
@@ -19,12 +21,12 @@ public:
     size_t maxSize() const { return maxBytes; }
 
     template <typename T, typename... Args>
-    T* allocate(Args... args)
+    T* allocate(Args&&... args)
     {
         size_t size = sizeof(T);
         if ((offset + size) >= maxBytes)
-            throw std::bad_alloc();
-		T* instance = new ((void*)((uintptr_t)buffer + offset)) T(args...);
+            throw std::runtime_error("BehaviorTree Memory capacity exceeded.");
+		T* instance = new ((void*)((uintptr_t)buffer + offset)) T(std::forward<Args>(args)...);
         offset += size;
         return instance;
     }
@@ -34,7 +36,7 @@ public:
     {
         size_t size = sizeof(T) * length;
         if ((offset + size) >= maxBytes)
-            throw std::bad_alloc();
+            throw std::runtime_error("BehaviorTree Memory capacity exceeded.");
 		T* instance = new ((void*)((uintptr_t)buffer + offset)) T [length];
         offset += size;
         return instance;
