@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef BEHAVIOR_TREE_DECORATORS_H
+#define BEHAVIOR_TREE_DECORATORS_H
 
 #include "nodes.h"
 
@@ -10,12 +11,20 @@ class Decorator : public Node, public Observer
 {
 public:
     void setChild(Node* child) { childNode = child; }
-    virtual void initialize(class Scheduler& scheduler) override;
-    virtual void traverse(class Visitor& visitor) const override;
     Node* child() const { return childNode; }
-    virtual ~Decorator() override;
+    virtual void traverse(class Visitor& visitor) const override;
+    virtual ~Decorator() override
+    {
+        if (childNode)
+        {
+            childNode->~Node();
+            childNode = nullptr;
+        }
+    }
 protected:
+    virtual void start(class Scheduler& scheduler) noexcept override;
     virtual Status update() noexcept override { return Status::Suspended; }
+    virtual void stop(class Scheduler& scheduler) noexcept override;
 private:
     Node* childNode = nullptr;
 };
@@ -25,7 +34,10 @@ class Negate : public Decorator
 {
 public:
     virtual const char* name() const noexcept override { return "Not"; }
-    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) override;
+protected:
+    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) noexcept override;
 };
 
 }
+
+#endif

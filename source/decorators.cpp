@@ -1,34 +1,37 @@
 
-#include "bt.h"
+#include "decorators.h"
+#include "composites.h"
+#include "visitors.h"
+#include "scheduler.h"
 
 namespace bt
 {
 
-void Decorator::traverse(Visitor& visitor) const
+inline void Decorator::traverse(Visitor& visitor) const
 {
     visitor.visit(*this);
     if (Composite* composite = dynamic_cast<Composite*>(childNode))
         composite->traverseChildren(visitor);
 }
 
-void Decorator::initialize(Scheduler& scheduler)
+inline void Decorator::start(Scheduler& scheduler) noexcept
 {
-    scheduler.start(*childNode, this);
+    scheduler.start(*childNode, *this);
 }
 
-Decorator::~Decorator()
+inline void Decorator::stop(Scheduler& scheduler) noexcept
 {
-    childNode->~Node();
-    childNode = nullptr;
+    if (childNode)
+        scheduler.stop(*childNode);
 }
 
-void Negate::onComplete(Scheduler& scheduler, const Node& child, Status status)
+inline void Negate::onComplete(Scheduler& scheduler, const Node& child, Status status) noexcept
 {
     if (status == Status::Success)
         status = Status::Failure;
     else if (status == Status::Failure)
         status = Status::Success;
-    scheduler.stop(*this, status);
+    scheduler.completed(*this, status);
 }
 
 }

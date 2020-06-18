@@ -5,6 +5,10 @@
 # Output directory
 bin
 
+# Exclude test executables
+test/*
+!test/*.*
+
 # Prerequisites
 *.d
 

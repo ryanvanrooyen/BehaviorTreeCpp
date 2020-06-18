@@ -4,7 +4,7 @@
 #include <initializer_list>
 #include <memory>
 #include <array>
-#include "../source/bt.h"
+#include "../source/all.h"
 
 using namespace bt;
 using std::shared_ptr;
@@ -16,42 +16,36 @@ Status mockRunningAction() { return Status::Running; }
 Status mockFailureAction() { return Status::Failure; }
 bool canSeePlayer() { return true; }
 
+AsyncNode* testAsyncAction = nullptr;
 
-class Custom1: public Node
+void mockAsyncAction(AsyncAction& action)
+{
+    testAsyncAction = &action;
+}
+
+
+class Custom: public Node
 {
 public:
-    Custom1(const std::vector<Status>& results) : results(results) {}
-    virtual const char* name() const noexcept override { return "Custom1"; }
+    Custom(const std::initializer_list<Status>& results) : results(results) {}
+    virtual const char* name() const noexcept override { return "Custom"; }
+protected:
     virtual Status update() noexcept override
     {
         if (++index >= results.size())
             index = 0;
         return results[index];
     }
+    virtual ~Custom() override { std::cout << "Deleting custom action." << std::endl; }
 private:
     std::vector<Status> results;
     int index = -1;
 };
 
 
-class Custom2: public Node
-{
-public:
-    virtual const char* name() const noexcept override { return "Custom2"; }
-    virtual Status update() noexcept override
-    {
-        std::cout << "Performing custom action 2..." << std::endl;
-        return Status::Success;
-    }
-    virtual ~Custom2() override { std::cout << "Deleting custom action 2." << std::endl; }
-};
-
-
 shared_ptr<BehaviorTree> create()
 {
     BehaviorTreeBuilder builder(1024);
-
-    Custom1 c1({Status::Success, Status::Success});
 
     shared_ptr<BehaviorTree> attack = builder
         .sequence(3)
@@ -61,9 +55,10 @@ shared_ptr<BehaviorTree> create()
         .end();
 
     shared_ptr<BehaviorTree> patrol = builder
-        .sequence(5)
+        .parallel(5, Parallel::Policy::RequireAll, Parallel::Policy::RequireOne)
             .action("GoToPointA", mockSuccessAction)
-            .create<Custom1>(std::vector<Status>({Status::Running, Status::Success}))
+            .negate().create<Custom, std::initializer_list<Status>>({Status::Running, Status::Success})
+            // .action("AsyncTest1", mockAsyncAction)
             .action("GoToPointB", mockSuccessAction)
             .action("GoToPointC", mockSuccessAction)
             .action("GoToPointD", mockRunningAction)

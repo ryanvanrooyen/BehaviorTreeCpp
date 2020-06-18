@@ -1,10 +1,10 @@
 
-#pragma once
+#ifndef BEHAVIOR_TREE_VISITORS_H
+#define BEHAVIOR_TREE_VISITORS_H
 
 #include "nodes.h"
-#include "composites.h"
 #include "decorators.h"
-#include <iostream>
+#include "composites.h"
 
 namespace bt
 {
@@ -30,12 +30,43 @@ public:
     virtual void begin() override { depth = 0; }
     virtual void beforeChildNodes(const Composite& node) override { ++depth; }
     virtual void visit(const Node& node) override { print(node.name(), node.status()); }
-    virtual void visit(const Decorator& node) override;
-    virtual void visit(const SubTree& tree) override;
     virtual void afterChildNodes(const Composite& node) override { --depth; }
 
+    virtual void visit(const Decorator& node) override
+    {
+        if (Node* child = node.child())
+        {
+            Status status = node.status();
+            if (status == Status::Suspended)
+                status = child->status();
+            print(child->name(), status, node.name());
+        }
+        else
+        {
+            print(node.name(), node.status());
+        }
+    }
+
+    virtual void visit(const SubTree& tree) override
+    {
+        if (expand)
+            tree.traverseSubTree(*this);
+        else
+            visit((Node&) tree);
+    }
+
 protected:
-    virtual void print(const char* name, Status status, const char* prefix = nullptr);
+    virtual void print(const char* name, Status status, const char* prefix = nullptr)
+    {
+        for (int i = 0; i < depth; i++)
+            out << "\t";
+        if (prefix)
+            out << prefix << " ";
+        out << name;
+        if (status != Status::Initial)
+            out << ": " << status;
+        out << std::endl;
+    }
 
 private:
     int depth = 0;
@@ -44,3 +75,5 @@ private:
 };
 
 }
+
+#endif

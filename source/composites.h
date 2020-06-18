@@ -1,8 +1,8 @@
 
-#pragma once
+#ifndef BEHAVIOR_TREE_COMPOSITES_H
+#define BEHAVIOR_TREE_COMPOSITES_H
 
 #include "nodes.h"
-#include <cstdint>
 
 namespace bt
 {
@@ -13,32 +13,75 @@ public:
     Composite(Node** children, uint16_t childCount)
         : children(children), childCount(childCount) {}
 
-    virtual void initialize(class Scheduler& scheduler) override;
-    void addChild(Node* child);
+    void addChild(Node* child)
+    {
+        if (child && currentIndex < childCount)
+        {
+            children[currentIndex] = child;
+            ++currentIndex;
+        }
+    }
+
     virtual void traverse(class Visitor& visitor) const override;
     void traverseChildren(class Visitor& visitor) const;
-    virtual ~Composite() override;
+    virtual ~Composite() override
+    {
+        if (children)
+        {
+            for (uint16_t i = 0; i < childCount; ++i)
+                if (Node* child = children[i])
+                    child->~Node();
+            children = nullptr;
+        }
+    }
 protected:
+    virtual void start(class Scheduler& scheduler) noexcept override;
     virtual Status update() noexcept override { return Status::Suspended; }
+    virtual void stop(class Scheduler& scheduler) noexcept override;
     Node** children;
     const uint16_t childCount;
     uint16_t currentIndex = 0;
 };
+
 
 class Sequence : public Composite
 {
 public:
     using Composite::Composite;
     virtual const char* name() const noexcept override { return "Sequence"; }
-    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) override;
+protected:
+    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) noexcept override;
 };
+
 
 class Selector : public Composite
 {
 public:
     using Composite::Composite;
     virtual const char* name() const noexcept override { return "Selector"; }
-    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) override;
+protected:
+    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) noexcept override;
+};
+
+
+class Parallel : public Composite {
+public:
+    enum class Policy { RequireOne, RequireAll };
+
+    Parallel(Node** children, uint16_t childCount, Policy success, Policy failure)
+        : Composite(children, childCount), successPolicy(success), failurePolicy(failure) {}
+
+    virtual const char* name() const noexcept override { return "Parallel"; }
+protected:
+    virtual void start(class Scheduler& scheduler) noexcept override;
+    virtual void onComplete(class Scheduler& scheduler, const Node& child, Status status) noexcept override;
+private:
+    uint16_t successCount = 0;
+    uint16_t failureCount = 0;
+    Policy successPolicy;
+    Policy failurePolicy;
 };
 
 }
+
+#endif

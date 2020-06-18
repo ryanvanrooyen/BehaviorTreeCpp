@@ -7,7 +7,7 @@
             "command": "make example1",
             "presentation": {
                 "echo": false,
-                "reveal": "silent",
+                "reveal": "never",
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
@@ -22,7 +22,7 @@
             "command": "make DEBUG=y example1",
             "presentation": {
                 "echo": false,
-                "reveal": "silent",
+                "reveal": "never",
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,

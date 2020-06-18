@@ -1,46 +1,33 @@
 
-#pragma once
+#ifndef BEHAVIOR_TREE_NODES_H
+#define BEHAVIOR_TREE_NODES_H
 
 #include <memory>
-#include <iostream>
+#include "status.h"
 
 namespace bt
 {
 
-enum class Status
-{
-    Initial,
-    Running,
-    Success,
-    Failure,
-    Suspended,
-};
-
-std::ostream& operator<<(std::ostream& os, const Status& status);
-
-
 class Node
 {
 public:
-    virtual void initialize(class Scheduler& scheduler) {}
-    virtual Status update() noexcept = 0;
-
-    void tick(class Scheduler& scheduler)
-    {
-        std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
-        if (nodeStatus != Status::Running) initialize(scheduler);
-        nodeStatus = update();
-    }
-
-    Status status() const noexcept { return nodeStatus; }
     virtual const char* name() const noexcept { return "Node"; }
-
+    Status status() const noexcept { return nodeStatus; }
     virtual void traverse(class Visitor& visitor) const;
-
     virtual ~Node() {}
-
     friend class Scheduler;
+protected:
+    virtual void start(class Scheduler& scheduler) noexcept {}
+    virtual Status update() noexcept = 0;
+    virtual void stop(class Scheduler& scheduler) noexcept {}
 private:
+    void tick(class Scheduler& scheduler) noexcept
+    {
+        if (nodeStatus != Status::Running)
+            start(scheduler);
+        nodeStatus = update();
+        std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
+    }
     Status nodeStatus = Status::Initial;
     class Observer* observer = nullptr;
 };
@@ -49,43 +36,48 @@ private:
 class Observer
 {
 public:
-    virtual void onComplete(class Scheduler& scheduler, const Node& node, Status status) = 0;
+    friend class Scheduler;
+protected:
+    virtual void onComplete(class Scheduler& scheduler, const Node& node, Status status) noexcept = 0;
 };
 
 
-class Action: public Node
+class NamedNode: public Node
 {
 public:
-    Action(const char* name) : nodeName(name) {}
+    NamedNode(const char* name) : nodeName(name) {}
     virtual const char* name() const noexcept override { return nodeName; }
 private:
     const char* nodeName;
 };
 
 
-class SubTree : public Action, public Observer
+class SubTree : public NamedNode, public Observer
 {
 public:
     SubTree(const char* name, const std::shared_ptr<class BehaviorTree>& tree)
-        : Action(name), tree(tree) {}
+        : NamedNode(name), tree(tree) {}
 
-    virtual void initialize(class Scheduler& scheduler) override;
-    virtual Status update() noexcept override { return Status::Suspended; }
     virtual void traverse(Visitor& visitor) const override;
     void traverseSubTree(Visitor& visitor) const;
-    virtual void onComplete(class Scheduler& scheduler, const Node& node, Status status) override;
+protected:
+    virtual void start(class Scheduler& scheduler) noexcept override;
+    virtual Status update() noexcept override { return Status::Suspended; }
+    virtual void stop(class Scheduler& scheduler) noexcept override;
+    virtual void onComplete(class Scheduler& scheduler, const Node& root, Status status) noexcept override;
 private:
     std::shared_ptr<class BehaviorTree> tree;
 };
 
 
-typedef bool (*ConditionPtr) ();
+typedef bool (*ConditionFunction) ();
 
-class Condition: public Action
+class Condition: public NamedNode
 {
 public:
-    Condition(const char* name, ConditionPtr check)
-        : Action(name), check(check) {}
+    Condition(const char* name, ConditionFunction check)
+        : NamedNode(name), check(check) {}
+protected:
     virtual Status update() noexcept override
     {
         try
@@ -98,17 +90,18 @@ public:
         }
     }
 private:
-    ConditionPtr check;
+    ConditionFunction check;
 };
 
 
-typedef Status (*ActionPtr) ();
+typedef Status (*ActionFunction) ();
 
-class ActionFunction: public Action
+class Action : public NamedNode
 {
 public:
-    ActionFunction(const char* name, ActionPtr action)
-        : Action(name), action(action) {}
+    Action(const char* name, ActionFunction action)
+        : NamedNode(name), action(action) {}
+protected:
     virtual Status update() noexcept override
     {
         try
@@ -121,7 +114,63 @@ public:
         }
     }
 private:
-    ActionPtr action;
+    ActionFunction action;
+};
+
+
+class AsyncNode: public Node
+{
+public:
+    virtual const char* name() const noexcept override { return "Async Node"; }
+    void succeeded() noexcept;
+    void failed() noexcept;
+protected:
+    virtual void start() noexcept = 0;
+    virtual void start(class Scheduler& scheduler) noexcept override;
+    virtual Status update() noexcept override { return Status::Suspended; }
+private:
+    class Scheduler* scheduler;
+};
+
+
+typedef void (*AsyncActionFunction) (class AsyncAction&);
+
+class AsyncAction : public AsyncNode
+{
+public:
+    AsyncAction(const char* name, AsyncActionFunction onStart, AsyncActionFunction onStop = nullptr)
+        : nodeName(name), onStart(onStart), onStop(onStop) {}
+    virtual const char* name() const noexcept override { return nodeName; }
+protected:
+    virtual void start() noexcept override
+    {
+        try
+        {
+            onStart(*this);
+        }
+        catch (...)
+        {
+            failed();
+        }
+    }
+
+    virtual void stop(class Scheduler& scheduler) noexcept override
+    {
+        try
+        {
+            if (onStop)
+                onStop(*this);
+        }
+        catch (...)
+        {
+        }
+    }
+private:
+    const char* nodeName;
+    AsyncActionFunction onStart;
+    AsyncActionFunction onStop;
 };
 
 }
+
+#endif

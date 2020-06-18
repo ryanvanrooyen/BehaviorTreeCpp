@@ -1,10 +1,9 @@
 
-#pragma once
+#ifndef BEHAVIOR_TREE_MEMORY_H
+#define BEHAVIOR_TREE_MEMORY_H
 
-#include <utility>
 #include <cstdint>
-#include <stdexcept>
-#include <new>
+#include <cstring>
 
 namespace bt
 {
@@ -12,10 +11,23 @@ namespace bt
 class Memory
 {
 public:
-    Memory(const size_t maxBytes);
-    Memory(const Memory& m);
-    Memory(Memory&& m) noexcept;
-    ~Memory();
+    Memory(const size_t maxBytes)
+        : buffer(new uint8_t[maxBytes]), maxBytes(maxBytes) {}
+
+    Memory(const Memory& m)
+        : buffer(new uint8_t[m.maxBytes]), maxBytes(m.maxBytes), offset(m.offset)
+    {
+        if (offset > 0)
+            memcpy(buffer, m.buffer, offset);
+    }
+
+    Memory(Memory&& m) noexcept
+        : buffer(m.buffer), offset(m.offset), maxBytes(m.maxBytes)
+    {
+        m.buffer = nullptr;
+    }
+
+    ~Memory() { delete[] buffer; }
 
     size_t size() const { return offset; }
     size_t maxSize() const { return maxBytes; }
@@ -49,3 +61,5 @@ private:
 };
 
 }
+
+#endif
