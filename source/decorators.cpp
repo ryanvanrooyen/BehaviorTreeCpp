@@ -1,8 +1,8 @@
 
-#include "decorators.h"
-#include "composites.h"
-#include "visitors.h"
-#include "scheduler.h"
+#include "decorators.hpp"
+#include "composites.hpp"
+#include "visitors.hpp"
+#include "scheduler.hpp"
 
 namespace bt
 {
@@ -23,6 +23,15 @@ inline void Decorator::stop(Scheduler& scheduler) noexcept
 {
     if (childNode)
         scheduler.stop(*childNode);
+}
+
+inline Decorator::~Decorator()
+{
+    if (childNode)
+    {
+        childNode->~Node();
+        childNode = nullptr;
+    }
 }
 
 inline void Negate::onComplete(Scheduler& scheduler, const Node& child, Status status) noexcept

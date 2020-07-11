@@ -1,8 +1,8 @@
 
-#include "nodes.h"
-#include "visitors.h"
-#include "scheduler.h"
-#include "tree.h"
+#include "nodes.hpp"
+#include "visitors.hpp"
+#include "scheduler.hpp"
+#include "tree.hpp"
 
 namespace bt
 {

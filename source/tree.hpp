@@ -2,10 +2,10 @@
 #ifndef BEHAVIOR_TREE_TREE_H
 #define BEHAVIOR_TREE_TREE_H
 
-#include "nodes.h"
-#include "visitors.h"
-#include "memory.h"
-#include "scheduler.h"
+#include "nodes.hpp"
+#include "visitors.hpp"
+#include "memory.hpp"
+#include "scheduler.hpp"
 
 namespace bt
 {

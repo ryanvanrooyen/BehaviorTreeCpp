@@ -1,7 +1,7 @@
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
-#include "mocks.h"
+#include "mocks.hpp"
 
 using std::vector;
 using namespace bt;
@@ -13,7 +13,7 @@ TEST_CASE("Basic Node Tests") {
 
     MockNodeInfo info;
     {
-        auto tree = BehaviorTreeBuilder(2014)
+        auto tree = Builder(2014)
             .create<MockNode>("Node1", info, vector<Status>({Status::Failure, Status::Success}))
             .end();
 

@@ -1,10 +1,19 @@
 
-#include "composites.h"
-#include "visitors.h"
-#include "scheduler.h"
+#include "composites.hpp"
+#include "visitors.hpp"
+#include "scheduler.hpp"
 
 namespace bt
 {
+
+inline void Composite::addChild(Node* child)
+{
+    if (child && currentIndex < childCount)
+    {
+        children[currentIndex] = child;
+        ++currentIndex;
+    }
+}
 
 inline void Composite::start(Scheduler& scheduler) noexcept
 {
@@ -33,6 +42,17 @@ inline void Composite::stop(Scheduler& scheduler) noexcept
         for (uint16_t i = 0; i < childCount; ++i)
             if (Node* child = children[i])
                 scheduler.stop(*child);
+    }
+}
+
+inline Composite::~Composite()
+{
+    if (children)
+    {
+        for (uint16_t i = 0; i < childCount; ++i)
+            if (Node* child = children[i])
+                child->~Node();
+        children = nullptr;
     }
 }
 
@@ -76,7 +96,6 @@ inline void Parallel::start(Scheduler& scheduler) noexcept
 
 inline void Parallel::onComplete(Scheduler& scheduler, const Node& child, Status status) noexcept
 {
-    // TODO: Handle shutting down other children in the RequireOne policy cases:
     if (status == Status::Success)
     {
         ++successCount;
@@ -98,6 +117,7 @@ inline void Parallel::onComplete(Scheduler& scheduler, const Node& child, Status
         }
     }
 
+    // TODO: Handle the situation where both success and failure are set to RequireAll and some succeeded and some fail.
     if (failurePolicy == Policy::RequireAll && failureCount == childCount)
         scheduler.completed(*this, Status::Failure);
     else if (successPolicy == Policy::RequireAll && successCount == childCount)

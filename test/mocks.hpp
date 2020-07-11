@@ -1,5 +1,5 @@
 
-#include "../source/bt.h"
+#include "../include/all.hpp"
 #include <vector>
 
 struct MockNodeInfo

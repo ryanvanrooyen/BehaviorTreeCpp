@@ -4,7 +4,7 @@
 #include <initializer_list>
 #include <memory>
 #include <array>
-#include "../source/all.h"
+#include "../include/all.hpp"
 
 using namespace bt;
 using std::shared_ptr;
@@ -45,7 +45,7 @@ private:
 
 shared_ptr<BehaviorTree> create()
 {
-    BehaviorTreeBuilder builder(1024);
+    Builder builder(1024);
 
     shared_ptr<BehaviorTree> attack = builder
         .sequence(3)

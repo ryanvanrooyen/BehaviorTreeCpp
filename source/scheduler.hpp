@@ -3,7 +3,7 @@
 #define BEHAVIOR_TREE_SCHEDULER_H
 
 #include <deque>
-#include "nodes.h"
+#include "nodes.hpp"
 
 namespace bt
 {

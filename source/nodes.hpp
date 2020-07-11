@@ -3,7 +3,7 @@
 #define BEHAVIOR_TREE_NODES_H
 
 #include <memory>
-#include "status.h"
+#include "status.hpp"
 
 namespace bt
 {

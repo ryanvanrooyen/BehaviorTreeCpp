@@ -2,7 +2,7 @@
 #ifndef BEHAVIOR_TREE_COMPOSITES_H
 #define BEHAVIOR_TREE_COMPOSITES_H
 
-#include "nodes.h"
+#include "nodes.hpp"
 
 namespace bt
 {
@@ -13,27 +13,10 @@ public:
     Composite(Node** children, uint16_t childCount)
         : children(children), childCount(childCount) {}
 
-    void addChild(Node* child)
-    {
-        if (child && currentIndex < childCount)
-        {
-            children[currentIndex] = child;
-            ++currentIndex;
-        }
-    }
-
+    void addChild(Node* child);
     virtual void traverse(class Visitor& visitor) const override;
     void traverseChildren(class Visitor& visitor) const;
-    virtual ~Composite() override
-    {
-        if (children)
-        {
-            for (uint16_t i = 0; i < childCount; ++i)
-                if (Node* child = children[i])
-                    child->~Node();
-            children = nullptr;
-        }
-    }
+    virtual ~Composite() override;
 protected:
     virtual void start(class Scheduler& scheduler) noexcept override;
     virtual Status update() noexcept override { return Status::Suspended; }
