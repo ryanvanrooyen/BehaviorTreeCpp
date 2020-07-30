@@ -2,6 +2,7 @@
 #ifndef BEHAVIOR_TREE_H
 #define BEHAVIOR_TREE_H
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <deque>
@@ -65,7 +66,7 @@ private:
         if (nodeStatus != Status::Running)
             start(scheduler);
         nodeStatus = update();
-        std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
+        // std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
     }
     Status nodeStatus = Status::Initial;
     class Observer* observer = nullptr;
@@ -300,7 +301,7 @@ class Parallel : public Composite {
 public:
     enum class Policy { RequireOne, RequireAll };
 
-    Parallel(Node** children, uint16_t childCount, Policy success, Policy failure)
+    Parallel(Node** children, uint16_t childCount, Policy success, Policy failure = Policy::RequireAll)
         : Composite(children, childCount), successPolicy(success), failurePolicy(failure) {}
 
     virtual const char* name() const noexcept override { return "Parallel"; }
@@ -490,6 +491,11 @@ public:
             node.stop(*this);
             node.nodeStatus = Status::Failure;
         }
+
+        // Remove the node from the queue if it exists:
+        auto node_pos = std::find(runningNodes.begin(), runningNodes.end(), &node);
+        if (node_pos != runningNodes.end())
+            runningNodes.erase(node_pos);
     }
 private:
     std::deque<Node*> runningNodes;
@@ -509,58 +515,54 @@ namespace bt
 class BehaviorTree : public Observer
 {
 public:
-    void tick()
+    Status tick()
     {
-        if (isFirstTick)
+        if (schedulerStopped)
         {
-            isFirstTick = false;
+            schedulerStopped = false;
             scheduler->start(*root, *this);
         }
         scheduler->tick();
+        return root->status();
     }
 
     void stop()
     {
-        if (root && scheduler)
-            scheduler->stop(*root);
+        scheduler->stop(*root);
     }
 
     void traverse(Visitor& visitor) const
     {
         visitor.begin();
-        if (root)
-            root->traverse(visitor);
+        root->traverse(visitor);
         visitor.end();
     }
 
     ~BehaviorTree()
     {
-        if (root)
-        {
-            stop();
-            root->~Node();
-            root = nullptr;
-        }
+        stop();
+        root->~Node();
+        root = nullptr;
     }
 
     friend class Memory;
     friend class SubTree;
+    Status status() const noexcept { return root->status(); }
 protected:
     virtual void onComplete(class Scheduler& scheduler, const Node& root, Status status) noexcept override
     {
-        // When the root node completes, just reschedule it no matter if it succeeded or failed:
-        scheduler.start(*this->root, *this);
+        schedulerStopped = true;
     }
 private:
-    BehaviorTree(Node* root,
+    BehaviorTree(Node& root,
         const std::shared_ptr<Memory>& memory,
         const std::shared_ptr<Scheduler>& scheduler)
-        : root(root), memory(memory), scheduler(scheduler) {}
+        : root(&root), memory(memory), scheduler(scheduler) {}
 
     Node* root;
     std::shared_ptr<Memory> memory;
     std::shared_ptr<Scheduler> scheduler;
-    bool isFirstTick = true;
+    bool schedulerStopped = true;
 };
 
 std::ostream& operator<<(std::ostream& os, const BehaviorTree& tree)
@@ -601,6 +603,7 @@ public:
     // Composites:
     Builder& selector(uint16_t childCount) { return composite<Selector>(childCount); }
     Builder& sequence(uint16_t childCount) { return composite<Sequence>(childCount); }
+    Builder& parallel(uint16_t childCount, Parallel::Policy success) { return composite<Parallel>(childCount, success); }
     Builder& parallel(uint16_t childCount, Parallel::Policy success, Parallel::Policy failure) { return composite<Parallel>(childCount, success, failure); }
 
     // Decorators:
@@ -838,7 +841,8 @@ inline void Parallel::start(Scheduler& scheduler) noexcept
     failureCount = 0;
     currentIndex = 0;
 
-    for (uint16_t i = 0; i < childCount; ++i)
+    // Queue the children in reverse order so they end up being ran in the correct order (first->last):
+    for (uint16_t i = childCount - 1; i < childCount; --i)
         scheduler.start(*children[i], *this);
 }
 
@@ -865,11 +869,13 @@ inline void Parallel::onComplete(Scheduler& scheduler, const Node& child, Status
         }
     }
 
-    // TODO: Handle the situation where both success and failure are set to RequireAll and some succeeded and some fail.
     if (failurePolicy == Policy::RequireAll && failureCount == childCount)
         scheduler.completed(*this, Status::Failure);
     else if (successPolicy == Policy::RequireAll && successCount == childCount)
         scheduler.completed(*this, Status::Success);
+    // If both success and failure policies are all and some succeed, but some fail, consider it a failure:
+    else if ((successCount + failureCount) == childCount)
+        scheduler.completed(*this, Status::Failure);
 }
 
 }
@@ -925,7 +931,7 @@ inline std::shared_ptr<BehaviorTree> Builder::end()
         return nullptr;
     if (groups.size())
         throw std::runtime_error("Invalid BehaviorTree definition. Number of child nodes does not match group node child counts.");
-    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(root, memory, scheduler);
+    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(*root, memory, scheduler);
     std::shared_ptr<BehaviorTree> tree(treePtr, [](BehaviorTree* t) { t->~BehaviorTree(); });
     root = nullptr;
     return tree;
