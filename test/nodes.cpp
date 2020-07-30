@@ -3,22 +3,25 @@
 #include "doctest.h"
 #include "mocks.hpp"
 
+#include <vector>
+
 using std::vector;
 using namespace bt;
 
 
-int factorial(int number) { return number <= 1 ? number : factorial(number - 1) * number; }
-
-TEST_CASE("Basic Node Tests") {
-
+TEST_CASE("Base Node Tests")
+{
     MockNodeInfo info;
     {
         auto tree = Builder(2014)
-            .create<MockNode>("Node1", info, vector<Status>({Status::Failure, Status::Success}))
+            .create<MockNode>(info, vector<Status>{Status::Failure, Status::Success})
             .end();
 
-        tree->tick();
+        CHECK(tree->tick() == Status::Failure);
+        CHECK(tree->tick() == Status::Success);
     }
 
-    CHECK(info.destroyed == true);
+    CHECK(info.createCount == 1);
+    CHECK(info.updateCount == 2);
+    CHECK(info.destroyCount == 1);
 }

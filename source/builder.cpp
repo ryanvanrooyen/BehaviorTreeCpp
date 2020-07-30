@@ -10,7 +10,7 @@ inline std::shared_ptr<BehaviorTree> Builder::end()
         return nullptr;
     if (groups.size())
         throw std::runtime_error("Invalid BehaviorTree definition. Number of child nodes does not match group node child counts.");
-    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(root, memory, scheduler);
+    BehaviorTree* treePtr = memory->allocate<BehaviorTree>(*root, memory, scheduler);
     std::shared_ptr<BehaviorTree> tree(treePtr, [](BehaviorTree* t) { t->~BehaviorTree(); });
     root = nullptr;
     return tree;

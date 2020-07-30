@@ -13,58 +13,54 @@ namespace bt
 class BehaviorTree : public Observer
 {
 public:
-    void tick()
+    Status tick()
     {
-        if (isFirstTick)
+        if (schedulerStopped)
         {
-            isFirstTick = false;
+            schedulerStopped = false;
             scheduler->start(*root, *this);
         }
         scheduler->tick();
+        return root->status();
     }
 
     void stop()
     {
-        if (root && scheduler)
-            scheduler->stop(*root);
+        scheduler->stop(*root);
     }
 
     void traverse(Visitor& visitor) const
     {
         visitor.begin();
-        if (root)
-            root->traverse(visitor);
+        root->traverse(visitor);
         visitor.end();
     }
 
     ~BehaviorTree()
     {
-        if (root)
-        {
-            stop();
-            root->~Node();
-            root = nullptr;
-        }
+        stop();
+        root->~Node();
+        root = nullptr;
     }
 
     friend class Memory;
     friend class SubTree;
+    Status status() const noexcept { return root->status(); }
 protected:
     virtual void onComplete(class Scheduler& scheduler, const Node& root, Status status) noexcept override
     {
-        // When the root node completes, just reschedule it no matter if it succeeded or failed:
-        scheduler.start(*this->root, *this);
+        schedulerStopped = true;
     }
 private:
-    BehaviorTree(Node* root,
+    BehaviorTree(Node& root,
         const std::shared_ptr<Memory>& memory,
         const std::shared_ptr<Scheduler>& scheduler)
-        : root(root), memory(memory), scheduler(scheduler) {}
+        : root(&root), memory(memory), scheduler(scheduler) {}
 
     Node* root;
     std::shared_ptr<Memory> memory;
     std::shared_ptr<Scheduler> scheduler;
-    bool isFirstTick = true;
+    bool schedulerStopped = true;
 };
 
 std::ostream& operator<<(std::ostream& os, const BehaviorTree& tree)

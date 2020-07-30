@@ -51,7 +51,7 @@ class Parallel : public Composite {
 public:
     enum class Policy { RequireOne, RequireAll };
 
-    Parallel(Node** children, uint16_t childCount, Policy success, Policy failure)
+    Parallel(Node** children, uint16_t childCount, Policy success, Policy failure = Policy::RequireAll)
         : Composite(children, childCount), successPolicy(success), failurePolicy(failure) {}
 
     virtual const char* name() const noexcept override { return "Parallel"; }

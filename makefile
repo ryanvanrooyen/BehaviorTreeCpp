@@ -25,7 +25,7 @@ example%: $(OBJS) mk_dir
 	# $(CC) $(CFLAGS) -c $< -o $@
 
 # Tests:
-tests: test/nodes
+tests: test/nodes test/composites
 
 test/%: test/%.cpp
 	$(CC) $(CFLAGS) $< -o $@

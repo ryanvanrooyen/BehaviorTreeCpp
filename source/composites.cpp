@@ -90,7 +90,8 @@ inline void Parallel::start(Scheduler& scheduler) noexcept
     failureCount = 0;
     currentIndex = 0;
 
-    for (uint16_t i = 0; i < childCount; ++i)
+    // Queue the children in reverse order so they end up being ran in the correct order (first->last):
+    for (uint16_t i = childCount - 1; i < childCount; --i)
         scheduler.start(*children[i], *this);
 }
 
@@ -117,11 +118,13 @@ inline void Parallel::onComplete(Scheduler& scheduler, const Node& child, Status
         }
     }
 
-    // TODO: Handle the situation where both success and failure are set to RequireAll and some succeeded and some fail.
     if (failurePolicy == Policy::RequireAll && failureCount == childCount)
         scheduler.completed(*this, Status::Failure);
     else if (successPolicy == Policy::RequireAll && successCount == childCount)
         scheduler.completed(*this, Status::Success);
+    // If both success and failure policies are all and some succeed, but some fail, consider it a failure:
+    else if ((successCount + failureCount) == childCount)
+        scheduler.completed(*this, Status::Failure);
 }
 
 }

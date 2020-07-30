@@ -26,7 +26,7 @@ private:
         if (nodeStatus != Status::Running)
             start(scheduler);
         nodeStatus = update();
-        std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
+        // std::cout << "Tick Node: " << name() << " " << nodeStatus << std::endl;
     }
     Status nodeStatus = Status::Initial;
     class Observer* observer = nullptr;

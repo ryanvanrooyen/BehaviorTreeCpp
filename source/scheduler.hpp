@@ -3,6 +3,7 @@
 #define BEHAVIOR_TREE_SCHEDULER_H
 
 #include <deque>
+#include <algorithm>
 #include "nodes.hpp"
 
 namespace bt
@@ -67,6 +68,11 @@ public:
             node.stop(*this);
             node.nodeStatus = Status::Failure;
         }
+
+        // Remove the node from the queue if it exists:
+        auto node_pos = std::find(runningNodes.begin(), runningNodes.end(), &node);
+        if (node_pos != runningNodes.end())
+            runningNodes.erase(node_pos);
     }
 private:
     std::deque<Node*> runningNodes;

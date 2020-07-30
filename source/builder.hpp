@@ -33,6 +33,7 @@ public:
     // Composites:
     Builder& selector(uint16_t childCount) { return composite<Selector>(childCount); }
     Builder& sequence(uint16_t childCount) { return composite<Sequence>(childCount); }
+    Builder& parallel(uint16_t childCount, Parallel::Policy success) { return composite<Parallel>(childCount, success); }
     Builder& parallel(uint16_t childCount, Parallel::Policy success, Parallel::Policy failure) { return composite<Parallel>(childCount, success, failure); }
 
     // Decorators:
