@@ -1,15 +1,13 @@
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "mocks.hpp"
-
 #include <vector>
 
 using std::vector;
 using namespace bt;
 
 
-TEST_CASE("Base Node Tests")
+TEST_CASE("Node Update 1")
 {
     MockNodeInfo info;
     {

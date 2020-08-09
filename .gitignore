@@ -1,13 +1,10 @@
 
-# Editor files
-*.xcodeproj
-
 # Output directory
 bin
 
 # Exclude test executables
-test/*
-!test/*.*
+tests/*
+!tests/*.*
 
 # Prerequisites
 *.d
@@ -26,10 +23,6 @@ test/*
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
 
 # Compiled Static libraries
 *.lai

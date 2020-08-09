@@ -9,27 +9,30 @@ ifeq ($(DEBUG), y)
 	OUTDIR = bin/debug
 endif
 
-mk_dir:
-	mkdir -p $(OUTDIR)
+all: tests
+	# Run tests with no version output
+	tests/tests -nv
+
+behavior_tree.hpp: $(wildcard source/*)
+	./build.py behavior_tree.hpp include/all.hpp
 
 # Examples:
 example%: $(OBJS) mk_dir
 	$(CC) $(CFLAGS) examples/$@.cpp -o $(OUTDIR)/$@
 
-
 # Source files:
+# mk_dir:
+#	mkdir -p $(OUTDIR)
+
 # $(OUTDIR)/%.o: source/%.cpp source/*.h mk_dir
 	# $(CC) $(CFLAGS) -c $< -o $@
 
 # $(OUTDIR)/%.o: examples/%.cpp source/*.h mk_dir
 	# $(CC) $(CFLAGS) -c $< -o $@
 
-# Tests:
-tests: test/nodes test/composites
+tests: behavior_tree.hpp $(wildcard tests/*.*pp)
+	$(CC) $(CFLAGS) tests/tests.cpp -o tests/tests
 
-test/%: test/%.cpp
-	$(CC) $(CFLAGS) $< -o $@
-
-# Helpers:
 clean:
 	rm -rf bin
+	rm behavior_tree.hpp

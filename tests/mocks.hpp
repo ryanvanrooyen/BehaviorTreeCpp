@@ -1,5 +1,8 @@
 
-#include "../include/all.hpp"
+#ifndef BEHAVIOR_TREE_MOCKS_H
+#define BEHAVIOR_TREE_MOCKS_H
+
+#include "../behavior_tree.hpp"
 #include <vector>
 #include <initializer_list>
 
@@ -17,7 +20,7 @@ public:
     MockNode(MockNodeInfo& info, const std::vector<bt::Status>& results, const char* name = "MockNode")
         : info(&info), results(results), NamedNode(name)
     {
-        ++info.createCount; 
+        ++info.createCount;
     }
 
     MockNode(MockNodeInfo& info, const bt::Status result, const char* name = "MockNode")
@@ -40,3 +43,5 @@ private:
     std::vector<bt::Status> results;
     int index = -1;
 };
+
+#endif
