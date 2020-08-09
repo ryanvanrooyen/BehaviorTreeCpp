@@ -17,7 +17,7 @@ all: tests
 	# Print newline for space
 	echo ""
 
-behavior_tree.hpp: $(wildcard source/*)
+behavior_tree.hpp: $(wildcard source/* include/*)
 	./build.py behavior_tree.hpp include/all.hpp
 
 # Examples:
