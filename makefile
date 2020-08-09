@@ -10,8 +10,10 @@ ifeq ($(DEBUG), y)
 endif
 
 all: tests
-	# Run tests with no version output
-	tests/tests -nv
+	# Print newline for space
+	echo ""
+	# Run tests
+	tests/tests
 
 behavior_tree.hpp: $(wildcard source/*)
 	./build.py behavior_tree.hpp include/all.hpp
