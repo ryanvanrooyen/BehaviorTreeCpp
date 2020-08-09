@@ -1,5 +1,6 @@
 
 #include "doctest.h"
+#include "../behavior_tree.hpp"
 #include "mocks.hpp"
 #include <vector>
 

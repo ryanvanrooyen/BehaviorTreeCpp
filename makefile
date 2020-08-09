@@ -10,12 +10,9 @@ ifeq ($(DEBUG), y)
 endif
 
 all: tests
-	# Print newline for space
-	echo ""
-	# Run tests
+	@echo ""
 	tests/tests
-	# Print newline for space
-	echo ""
+	@echo ""
 
 behavior_tree.hpp: $(wildcard source/* include/*)
 	./build.py behavior_tree.hpp include/all.hpp
